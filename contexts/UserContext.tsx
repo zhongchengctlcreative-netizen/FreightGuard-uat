@@ -8,7 +8,6 @@ interface UserContextType {
   currentUser: User | null;
   users: User[];
   loading: boolean;
-  isPasswordRecoveryFlow: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -23,7 +22,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isPasswordRecoveryFlow, setIsPasswordRecoveryFlow] = useState(false);
 
   const refreshUsers = useCallback(async () => {
     try {
@@ -79,18 +77,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setIsPasswordRecoveryFlow(true);
-      }
-
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         syncUserProfile(session.user);
       } else {
         setCurrentUser(null);
-        if (event === 'SIGNED_OUT') {
-          setIsPasswordRecoveryFlow(false);
-        }
       }
       setLoading(false);
     });
@@ -180,18 +171,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <UserContext.Provider value={{ 
-      currentUser, 
-      users, 
-      loading, 
-      isPasswordRecoveryFlow,
-      login, 
-      logout, 
-      resetPassword, 
-      updatePassword, 
-      signup, 
-      refreshUsers 
-    }}>
+    <UserContext.Provider value={{ currentUser, users, loading, login, logout, resetPassword, updatePassword, signup, refreshUsers }}>
       {children}
     </UserContext.Provider>
   );

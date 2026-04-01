@@ -14,7 +14,6 @@ import CostRevenuePage from './components/CostRevenuePage';
 import AirFreightCalculator from './components/AirFreightCalculator';
 import WelcomePage from './components/WelcomePage';
 import ResetPasswordPage from './components/ResetPasswordPage';
-import ForgotPasswordPage from './components/ForgotPasswordPage';
 import SettingsPage from './components/SettingsPage';
 import QuarterlyTrendsPage from './components/QuarterlyTrendsPage';
 import CalendarPage from './components/CalendarPage';
@@ -110,7 +109,7 @@ const RequestDetailContainer: React.FC<RequestDetailContainerProps> = ({
 };
 
 const App: React.FC = () => {
-  const { currentUser, users, refreshUsers, isPasswordRecoveryFlow } = useUser();
+  const { currentUser, users, refreshUsers } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -302,8 +301,7 @@ const App: React.FC = () => {
       link.click();
   };
 
-  // Forced views for recovery flow
-  if (isPasswordRecoveryFlow || isRecovery) {
+  if (isRecovery) {
     return (
       <Routes>
         <Route path="*" element={<ResetPasswordPage />} />
@@ -311,12 +309,9 @@ const App: React.FC = () => {
     );
   }
 
-  // Public routes for unauthenticated users
   if (!currentUser) {
     return (
       <Routes>
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<WelcomePage />} />
       </Routes>
     );
