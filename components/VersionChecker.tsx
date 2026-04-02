@@ -1,5 +1,4 @@
 
-/// <reference types="vite/client" />
 import React, { useEffect, useState } from 'react';
 import { RefreshCw, X, Sparkles } from 'lucide-react';
 
@@ -39,6 +38,10 @@ const VersionChecker: React.FC = () => {
           // If server version differs from initial client version
           if (data.buildId !== currentVersion) {
             setUpdateAvailable(true);
+            // Auto-dismiss after 30 seconds if user doesn't interact
+            setTimeout(() => {
+              setUpdateAvailable(false);
+            }, 30000);
           }
         }
       } catch (e) {

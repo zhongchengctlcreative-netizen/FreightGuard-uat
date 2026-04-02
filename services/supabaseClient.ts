@@ -13,9 +13,13 @@ const getSupabaseConfig = () => {
     }
   }
   
+  // Check multiple possible environment variable names
+  const url = import.meta.env.VITE_SUPABASE_URL || (process.env as any).SUPABASE_URL || "";
+  const key = import.meta.env.VITE_SUPABASE_KEY || (process.env as any).SUPABASE_KEY || "";
+  
   return {
-    url: import.meta.env.VITE_SUPABASE_URL || "",
-    key: import.meta.env.VITE_SUPABASE_KEY || "",
+    url: url.trim(),
+    key: key.trim(),
     source: 'environment'
   };
 };
@@ -40,4 +44,8 @@ if (!isSupabaseConfigured) {
   }
 }
 
-export const supabase = createClient(finalUrl, finalKey);
+// Create client only if configured to avoid crashing the app on startup
+// If not configured, we export a proxy or a dummy to prevent "undefined" errors
+export const supabase = isSupabaseConfigured 
+  ? createClient(finalUrl, finalKey)
+  : createClient("https://placeholder.supabase.co", "placeholder-key"); // Dummy client to prevent crashes
