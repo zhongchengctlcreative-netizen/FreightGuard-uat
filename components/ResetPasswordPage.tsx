@@ -5,7 +5,7 @@ import { useUser } from '../contexts/UserContext';
 import { KeyRound, Loader2, AlertCircle, CheckCircle, ArrowRight, Truck } from 'lucide-react';
 
 const ResetPasswordPage: React.FC = () => {
-  const { updatePassword, loading: authLoading } = useUser();
+  const { updatePassword, loading: authLoading, currentUser } = useUser();
   const navigate = useNavigate();
   
   const [password, setPassword] = useState('');
@@ -14,9 +14,12 @@ const ResetPasswordPage: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // Simple check to ensure the user actually has a session (from the reset link)
-  // Supabase handles this automatically by putting the session in the URL fragment
-  // which the SDK picks up.
+  // Check if user is authenticated (recovery session should be active)
+  useEffect(() => {
+    if (!authLoading && !currentUser && !success) {
+      setError("No active reset session found. Please use the link from your email.");
+    }
+  }, [authLoading, currentUser, success]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +116,7 @@ const ResetPasswordPage: React.FC = () => {
 
               <button 
                 type="submit" 
-                disabled={isSubmitting}
+                disabled={isSubmitting || (!currentUser && !success)}
                 className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-xl shadow-indigo-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : "Update Password"}

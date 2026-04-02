@@ -1,4 +1,5 @@
 
+/// <reference types="vite/client" />
 import React, { useEffect, useState } from 'react';
 import { RefreshCw, X, Sparkles } from 'lucide-react';
 
@@ -9,6 +10,8 @@ const VersionChecker: React.FC = () => {
   const [currentVersion, setCurrentVersion] = useState<string | null>(null);
 
   useEffect(() => {
+    if (import.meta.env.DEV) return; // Disable version checking in development
+
     // 1. Fetch initial version on mount
     const fetchInitialVersion = async () => {
       try {
@@ -20,7 +23,6 @@ const VersionChecker: React.FC = () => {
         }
       } catch (e) {
         // Silent fail on dev or if file missing
-        console.debug("Could not fetch version info");
       }
     };
 
@@ -40,7 +42,7 @@ const VersionChecker: React.FC = () => {
           }
         }
       } catch (e) {
-        console.debug("Version check failed");
+        // Silent fail
       }
     }, POLL_INTERVAL_MS);
 

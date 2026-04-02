@@ -8,6 +8,7 @@ interface UserContextType {
   currentUser: User | null;
   users: User[];
   loading: boolean;
+  isPasswordRecoveryFlow: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -22,6 +23,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPasswordRecoveryFlow, setIsPasswordRecoveryFlow] = useState(false);
 
   const refreshUsers = useCallback(async () => {
     try {
@@ -40,22 +42,53 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const profile = await userService.getUserById(supabaseUser.id);
+      let profile = await userService.getUserById(supabaseUser.id);
+      
+      // If profile exists but is missing data (e.g. created by trigger), update it
       if (profile) {
-        setCurrentUser(profile);
+          const updates: Partial<User> = {};
+          if ((!profile.name || profile.name === 'USER') && supabaseUser.user_metadata?.full_name) {
+              updates.name = supabaseUser.user_metadata.full_name;
+          }
+          if (!profile.department && supabaseUser.user_metadata?.department) {
+              updates.department = supabaseUser.user_metadata.department;
+          }
+          if (profile.role === 'REQUESTER' && supabaseUser.user_metadata?.role && supabaseUser.user_metadata.role !== 'REQUESTER') {
+              updates.role = supabaseUser.user_metadata.role;
+          }
+          
+          if (Object.keys(updates).length > 0) {
+              try {
+                  await userService.updateUser(profile.id, updates);
+                  profile = { ...profile, ...updates };
+              } catch (updateErr) {
+                  console.warn("Failed to sync missing profile data:", updateErr);
+              }
+          }
+          setCurrentUser(profile);
       } else {
         // If profile doesn't exist in app_users but user is authed, 
-        // we might need to create it or handle this state.
-        // For now, just set a basic user object if profile fetch fails.
-        setCurrentUser({
-          id: supabaseUser.id,
-          email: supabaseUser.email || '',
-          name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0].toUpperCase() || 'USER',
-          role: 'REQUESTER',
-          department: 'Unknown',
-          status: 'ACTIVE',
-          lastLogin: new Date().toISOString()
-        });
+        // create it to ensure sync between auth.users and app_users.
+        try {
+          const newUser = await userService.createUser({
+            name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0].toUpperCase() || 'USER',
+            email: supabaseUser.email || '',
+            role: supabaseUser.user_metadata?.role || 'REQUESTER',
+            department: supabaseUser.user_metadata?.department || 'Unknown',
+          }, supabaseUser.id);
+          setCurrentUser(newUser);
+        } catch (createErr) {
+          console.error("Failed to create missing profile data:", createErr);
+          // Fallback to basic user object if creation fails
+          setCurrentUser({
+            id: supabaseUser.id,
+            email: supabaseUser.email || '',
+            name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0].toUpperCase() || 'USER',
+            role: supabaseUser.user_metadata?.role || 'REQUESTER',
+            department: supabaseUser.user_metadata?.department || 'Unknown',
+            lastLogin: new Date().toISOString()
+          });
+        }
       }
     } catch (error) {
       console.error("Error syncing user profile:", error);
@@ -69,21 +102,27 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        syncUserProfile(session.user);
+        await syncUserProfile(session.user);
       }
       setLoading(false);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecoveryFlow(true);
+      }
+
       if (session?.user) {
         syncUserProfile(session.user);
       } else {
         setCurrentUser(null);
+        if (event === 'SIGNED_OUT') {
+          setIsPasswordRecoveryFlow(false);
+        }
       }
-      setLoading(false);
     });
 
     return () => {
@@ -108,8 +147,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    if (data.session?.user) {
+      await syncUserProfile(data.session.user);
+    }
   };
 
   const resetPassword = async (email: string) => {
@@ -151,6 +193,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       options: {
         data: {
           full_name: userData.name,
+          department: userData.department,
+          role: userData.role,
         }
       }
     });
@@ -171,7 +215,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <UserContext.Provider value={{ currentUser, users, loading, login, logout, resetPassword, updatePassword, signup, refreshUsers }}>
+    <UserContext.Provider value={{ 
+      currentUser, 
+      users, 
+      loading, 
+      isPasswordRecoveryFlow,
+      login, 
+      logout, 
+      resetPassword, 
+      updatePassword, 
+      signup, 
+      refreshUsers 
+    }}>
       {children}
     </UserContext.Provider>
   );

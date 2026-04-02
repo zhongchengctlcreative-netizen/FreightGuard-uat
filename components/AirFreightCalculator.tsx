@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { Upload, Calculator, Package, Info, AlertCircle, Search, Plus, Trash2, Loader2, CheckCircle, Database, Settings, X, Save, Edit2, Globe, Map, Box, Table } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
@@ -617,14 +617,14 @@ const AirFreightCalculator: React.FC = () => {
   const palletChargeable = Math.max(totals.palletGross, totals.palletVol);
   
   const destinationOptions: SelectOption[] = useMemo(() => {
-    const map = new Map<string, any>();
+    const map = new window.Map<string, any>();
     availableDestinations.forEach(d => {
       const upperCode = d.code.toUpperCase().trim();
       if (!map.has(upperCode)) {
         map.set(upperCode, { label: d.description || upperCode, value: upperCode, subLabel: upperCode, original: d });
       }
     });
-    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+    return Array.from(map.values()).sort((a: any, b: any) => a.label.localeCompare(b.label));
   }, [availableDestinations]);
 
   // Calculate Costs for Comparison
@@ -994,7 +994,7 @@ const AirFreightCalculator: React.FC = () => {
                         <td className="px-4 py-3 text-right text-slate-600">{calc.totalGrossWeight.toFixed(2)} kg</td>
                         <td className="px-4 py-3 text-right text-slate-600">{calc.totalCartonVolWeight.toFixed(2)} kg</td>
                         <td className="px-4 py-3 text-right text-xs text-slate-500">
-                          {calc.maxCartonsPerPallet > 0 ? (
+                          {(calc.maxCartonsPerPallet || 0) > 0 ? (
                             <div className="flex flex-col items-end">
                               <span>{calc.maxCartonsPerLayer} x {calc.maxLayers}</span>
                               <span className="text-[10px] text-slate-400">({calc.maxCartonsPerPallet}/plt)</span>
@@ -1002,7 +1002,7 @@ const AirFreightCalculator: React.FC = () => {
                           ) : '-'}
                         </td>
                         <td className="px-4 py-3 text-right text-slate-600">
-                          {calc.maxCartonsPerPallet > 0 ? calc.totalPallets : <span className="text-red-400 text-xs" title="Exceeds pallet size">N/A</span>}
+                          {(calc.maxCartonsPerPallet || 0) > 0 ? calc.totalPallets : <span className="text-red-400 text-xs" title="Exceeds pallet size">N/A</span>}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-2">

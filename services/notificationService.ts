@@ -267,7 +267,7 @@ export const notificationService = {
         const user = allUsers.find(u => u.email === request.firstApprover);
         if (user) targetUsers.push(user);
     } else {
-        targetUsers = allUsers.filter(u => (u.role === 'APPROVER' || u.role === 'ADMIN') && u.status === 'ACTIVE');
+        targetUsers = allUsers.filter(u => (u.role === 'APPROVER' || u.role === 'ADMIN'));
     }
 
     const link = this._getLink(request.id);

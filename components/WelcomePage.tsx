@@ -116,7 +116,6 @@ const WelcomePage: React.FC = () => {
             email: signupData.email,
             department: signupData.department,
             role: signupData.role,
-            status: 'INACTIVE', // New users are inactive by default
         }, signupData.password);
         setSignupSuccess(true);
     } catch (err: any) {

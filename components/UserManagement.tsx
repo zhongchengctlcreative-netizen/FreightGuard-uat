@@ -26,8 +26,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate, currentUs
     name: '',
     email: '',
     role: 'REQUESTER',
-    department: '',
-    status: 'ACTIVE'
+    department: ''
   });
 
   const isAdmin = currentUser?.role === 'ADMIN';
@@ -59,8 +58,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate, currentUs
         name: user.name,
         email: user.email,
         role: user.role,
-        department: user.department,
-        status: user.status
+        department: user.department
       });
     } else {
       setEditingUser(null);
@@ -68,8 +66,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate, currentUs
         name: '',
         email: '',
         role: 'REQUESTER',
-        department: '',
-        status: 'ACTIVE'
+        department: ''
       });
     }
     setIsModalOpen(true);
@@ -109,11 +106,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate, currentUs
          const adminUsers = users.filter(u => u.role === 'ADMIN');
          if (adminUsers.length <= 1) {
              setSecurityAlert({ title: "Cannot Delete Admin", message: "You cannot delete the only Administrator in the system. Create another Admin first." });
-             return;
-         }
-         const activeAdmins = adminUsers.filter(u => u.status === 'ACTIVE');
-         if (user.status === 'ACTIVE' && activeAdmins.length <= 1) {
-             setSecurityAlert({ title: "System Lockout Prevention", message: "You cannot delete the only ACTIVE Administrator. Please activate another Admin account before proceeding." });
              return;
          }
      }
@@ -216,7 +208,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate, currentUs
                   <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">User</th>
                   <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Role</th>
                   <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Department</th>
-                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Registration</th>
                   {isAdmin && <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>}
                 </tr>
               </thead>
@@ -249,17 +241,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate, currentUs
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center gap-1.5">
-                          {user.status === 'ACTIVE' ? (
-                            <div className="flex items-center gap-1 text-green-600 text-xs font-medium bg-green-50 px-2 py-1 rounded border border-green-100">
-                              <CheckCircle size={12} /> Active
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1 text-amber-600 text-xs font-medium bg-amber-50 px-2 py-1 rounded border border-amber-200">
-                              <AlertTriangle size={12} /> Inactive
-                            </div>
-                          )}
-                        </div>
                         {/* Registration Status Indicator */}
                         {user.id.length < 20 ? (
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
@@ -403,36 +384,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate, currentUs
                 </div>
               </div>
 
-
-
-              <div className="space-y-2">
-                 <label className="text-sm font-semibold text-slate-700">Account Status</label>
-                 <div className="flex gap-4 mt-1">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                       <input 
-                         type="radio" 
-                         name="status"
-                         value="ACTIVE"
-                         checked={formData.status === 'ACTIVE'}
-                         onChange={() => setFormData({...formData, status: 'ACTIVE'})}
-                         className="text-indigo-600 focus:ring-indigo-500"
-                       />
-                       <span className="text-sm text-slate-700">Active</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                       <input 
-                         type="radio" 
-                         name="status"
-                         value="INACTIVE"
-                         checked={formData.status === 'INACTIVE'}
-                         onChange={() => setFormData({...formData, status: 'INACTIVE'})}
-                         className="text-slate-500 focus:ring-slate-500"
-                       />
-                       <span className="text-sm text-slate-700">Inactive</span>
-                    </label>
-                 </div>
-              </div>
-
               <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-4">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50">Cancel</button>
                 <button type="submit" className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 shadow-md flex items-center gap-2"><Save size={18} /> {editingUser ? 'Update User' : 'Create User'}</button>
@@ -449,6 +400,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate, currentUs
                 <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600"><AlertTriangle size={24} /></div>
                 <h3 className="text-lg font-bold text-slate-900">Delete User?</h3>
                 <p className="text-sm text-slate-500 mt-2">Are you sure you want to delete <span className="font-bold text-slate-800">{userToDelete.name}</span>? This action cannot be undone.</p>
+                <p className="text-xs text-slate-400 mt-3 bg-slate-50 p-2 rounded border border-slate-100">Note: To fully remove the user from Supabase Auth, ensure the <code className="bg-slate-200 px-1 rounded">delete_user</code> RPC function is created in your database.</p>
                 <div className="flex gap-3 mt-6 justify-center">
                    <button onClick={() => setUserToDelete(null)} className="px-4 py-2 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50">Cancel</button>
                    <button onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 shadow-sm">Delete User</button>

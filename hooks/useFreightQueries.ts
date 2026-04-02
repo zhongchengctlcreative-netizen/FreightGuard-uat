@@ -121,12 +121,12 @@ export const useShipmentMutations = () => {
             // Resubmission Case: Clear all approvals
             updates = {
                 ...updates,
-                l1ApprovedBy: null,
-                l1ApprovalDate: null,
-                l1ApprovalRemark: null,
-                approvedBy: null,
-                approvalDate: null,
-                approvalRemark: null,
+                l1ApprovedBy: undefined,
+                l1ApprovalDate: undefined,
+                l1ApprovalRemark: undefined,
+                approvedBy: undefined,
+                approvalDate: undefined,
+                approvalRemark: undefined,
                 // We typically keep rejection history until it is overwritten or just keep it for record,
                 // but for UI logic "Previous Rejection" block handles historical display.
                 // We set resubmission fields:

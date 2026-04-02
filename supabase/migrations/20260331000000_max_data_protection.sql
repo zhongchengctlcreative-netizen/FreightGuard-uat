@@ -34,6 +34,14 @@ DROP POLICY IF EXISTS "Users View Own Profile" ON "public"."app_users";
 DROP POLICY IF EXISTS "Admins Manage Users" ON "public"."app_users";
 
 -- 4. Helper Function for Admin Check
+-- Ensure status column is removed if it exists from previous versions
+DO $$ 
+BEGIN 
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='app_users' AND column_name='status') THEN
+        ALTER TABLE "public"."app_users" DROP COLUMN "status";
+    END IF;
+END $$;
+
 CREATE OR REPLACE FUNCTION is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -41,7 +49,6 @@ BEGIN
     SELECT 1 FROM app_users 
     WHERE email = auth.jwt() ->> 'email' 
     AND role = 'ADMIN' 
-    AND status = 'ACTIVE'
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

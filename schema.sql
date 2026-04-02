@@ -9,8 +9,16 @@ CREATE TABLE IF NOT EXISTS "public"."freight_raw_full" (
 
 -- 2. Support Tables
 CREATE TABLE IF NOT EXISTS "public"."app_users" (
-  "id" text NOT NULL PRIMARY KEY, "name" text, "email" text, "role" text, "department" text, "status" text, "last_login" text, "passcode" text
+  "id" text NOT NULL PRIMARY KEY, "name" text, "email" text, "role" text, "department" text, "last_login" text, "passcode" text
 );
+
+-- Ensure status column is removed if it exists from previous versions
+DO $$ 
+BEGIN 
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='app_users' AND column_name='status') THEN
+        ALTER TABLE "public"."app_users" DROP COLUMN "status";
+    END IF;
+END $$;
 
 ALTER TABLE "public"."app_users" DROP CONSTRAINT IF EXISTS "app_users_role_check";
 
@@ -178,7 +186,6 @@ BEGIN
     SELECT 1 FROM app_users 
     WHERE email = auth.jwt() ->> 'email' 
     AND role = 'ADMIN' 
-    AND status = 'ACTIVE'
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

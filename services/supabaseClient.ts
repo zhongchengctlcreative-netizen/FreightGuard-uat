@@ -3,9 +3,24 @@ import { createClient } from '@supabase/supabase-js';
 
 // --- CONNECTION CONFIGURATION ---
 
-// Hardcoded Supabase URL and Key as per the request.
-const finalUrl = "https://pljofwyhlshlkuanewsv.supabase.co";
-const finalKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsam9md3lobHNobGt1YW5ld3N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzNTUwODYsImV4cCI6MjA4MDkzMTA4Nn0.TImM5AaZpHi3TgLb34xthcSeonA13aUHM6yK9mi7Qtg";
+// Get configuration from localStorage (runtime override) or environment variables.
+const getSupabaseConfig = () => {
+  if (typeof window !== 'undefined') {
+    const storedUrl = localStorage.getItem('fg_supabase_url');
+    const storedKey = localStorage.getItem('fg_supabase_key');
+    if (storedUrl && storedKey) {
+      return { url: storedUrl, key: storedKey, source: 'localStorage' };
+    }
+  }
+  
+  return {
+    url: import.meta.env.VITE_SUPABASE_URL || "",
+    key: import.meta.env.VITE_SUPABASE_KEY || "",
+    source: 'environment'
+  };
+};
+
+const { url: finalUrl, key: finalKey, source } = getSupabaseConfig();
 
 // Validation helper
 export const isSupabaseConfigured = !!(
@@ -16,13 +31,12 @@ export const isSupabaseConfigured = !!(
 );
 
 if (!isSupabaseConfigured) {
-  // This block will now likely not be hit unless the hardcoded values are invalid.
   if (typeof window !== 'undefined') {
-    console.warn("Supabase configuration is invalid. Application may not function correctly.");
+    console.warn("Supabase configuration is missing or invalid. Please check your environment variables or system settings.");
   }
 } else {
   if (typeof window !== 'undefined') {
-    console.log("Supabase connection initialized with hardcoded credentials.");
+    console.log(`Supabase connection initialized via ${source}.`);
   }
 }
 

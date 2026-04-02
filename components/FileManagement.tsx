@@ -41,7 +41,7 @@ const FileManagement: React.FC<FileManagementProps> = ({ request, canUpload }) =
     setError(null);
     try {
       const fileList = await fileService.listFiles(request.id);
-      setFiles(fileList as FileObject[]);
+      setFiles(fileList as unknown as FileObject[]);
     } catch (e: any) {
       setError(e.message || 'Failed to fetch files.');
     } finally {

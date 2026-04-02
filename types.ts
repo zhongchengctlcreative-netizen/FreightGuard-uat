@@ -176,7 +176,6 @@ export interface User {
   email: string;
   role: UserRole;
   department: string;
-  status: 'ACTIVE' | 'INACTIVE';
   lastLogin?: string;
   passcode?: string; // Optional security pin for Approvers/Admins
 }

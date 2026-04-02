@@ -266,7 +266,7 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onSubmit, onCancel, cur
   [availableForwarders]);
 
   const approvers = useMemo(() => {
-    return users.filter(u => u.role === 'APPROVER' && u.status === 'ACTIVE' && u.email);
+    return users.filter(u => u.role === 'APPROVER' && u.email);
   }, [users]);
 
   const availableSecondApprovers = useMemo(() => {
@@ -274,7 +274,7 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onSubmit, onCancel, cur
   }, [approvers, watchedFirstApprover]);
 
   const filteredCcUsers = useMemo(() => {
-    const candidates = users.filter(u => !ccList.includes(u.email) && u.status === 'ACTIVE' && u.email);
+    const candidates = users.filter(u => !ccList.includes(u.email) && u.email);
     if (!ccInput) return candidates;
     const lower = ccInput.toLowerCase();
     return candidates.filter(u => (u.name && u.name.toLowerCase().includes(lower)) || (u.email && u.email.toLowerCase().includes(lower)));

@@ -12,7 +12,6 @@ const DEFAULT_USERS: User[] = [
     email: 'john.doe@freightguard.com', 
     role: 'REQUESTER', 
     department: 'Logistics', 
-    status: 'ACTIVE', 
     lastLogin: '2024-05-20 09:00',
     passcode: '1234'
   },
@@ -22,7 +21,6 @@ const DEFAULT_USERS: User[] = [
     email: 'jane.smith@freightguard.com', 
     role: 'APPROVER', 
     department: 'Finance', 
-    status: 'ACTIVE', 
     lastLogin: '2024-05-21 10:30',
     passcode: '1234'
   },
@@ -32,7 +30,6 @@ const DEFAULT_USERS: User[] = [
     email: 'admin@freightguard.com', 
     role: 'ADMIN', 
     department: 'IT', 
-    status: 'ACTIVE', 
     lastLogin: '2024-05-22 08:15',
     passcode: '8888'
   },
@@ -42,7 +39,6 @@ const DEFAULT_USERS: User[] = [
     email: 'sarah.c@freightguard.com', 
     role: 'APPROVER', 
     department: 'Operations', 
-    status: 'INACTIVE', 
     lastLogin: '2024-04-10 14:20',
     passcode: '1234'
   }
@@ -116,7 +112,6 @@ export const userService = {
         email: u.email,
         role: u.role,
         department: u.department,
-        status: u.status,
         lastLogin: u.last_login || u.lastLogin,
         passcode: u.passcode
       })) as User[];
@@ -153,7 +148,6 @@ export const userService = {
         email: data.email,
         role: data.role,
         department: data.department,
-        status: data.status,
         lastLogin: data.last_login || data.lastLogin,
         passcode: data.passcode
       } as User;
@@ -184,7 +178,6 @@ export const userService = {
         email: data.email,
         role: data.role,
         department: data.department,
-        status: data.status,
         lastLogin: data.last_login || data.lastLogin,
         passcode: data.passcode
       } as User;
@@ -229,7 +222,6 @@ export const userService = {
           email: user.email,
           role: user.role,
           department: user.department,
-          status: user.status || 'INACTIVE', // Ensure default status
           passcode: user.passcode,
           last_login: null
         };
@@ -249,16 +241,50 @@ export const userService = {
                     id, 
                     name: upperName,
                     role: user.role,
-                    department: user.department,
-                    status: user.status || 'ACTIVE'
+                    department: user.department
                 })
                 .eq('email', user.email)
                 .select()
                 .single();
             
             if (updateError) {
-                console.error("Supabase update-on-create failed:", JSON.stringify(updateError, null, 2));
-                handleSupabaseError(updateError);
+                if (updateError.code === '23505') {
+                    // Duplicate key error! The trigger already inserted the new ID.
+                    // We should update the trigger-inserted record instead, and ideally delete the old one.
+                    // For now, just update the trigger-inserted record.
+                    const { data: updatedTriggerData, error: triggerUpdateError } = await supabase
+                        .from('app_users')
+                        .update({
+                            name: upperName,
+                            email: user.email,
+                            role: user.role,
+                            department: user.department
+                        })
+                        .eq('id', id)
+                        .select()
+                        .single();
+                    
+                    if (triggerUpdateError) {
+                        console.error("Supabase update trigger-record failed:", JSON.stringify(triggerUpdateError, null, 2));
+                        return payload as User;
+                    }
+                    
+                    // Optionally delete the old pre-provisioned record if we have permission
+                    await supabase.from('app_users').delete().eq('email', user.email).neq('id', id);
+                    
+                    return {
+                        id: updatedTriggerData.id,
+                        name: updatedTriggerData.name?.toUpperCase(),
+                        email: updatedTriggerData.email,
+                        role: updatedTriggerData.role,
+                        department: updatedTriggerData.department,
+                        passcode: updatedTriggerData.passcode,
+                        lastLogin: updatedTriggerData.last_login
+                    } as User;
+                } else {
+                    console.error("Supabase update-on-create failed:", JSON.stringify(updateError, null, 2));
+                    handleSupabaseError(updateError);
+                }
             }
             
             return {
@@ -267,7 +293,6 @@ export const userService = {
                 email: updated.email,
                 role: updated.role,
                 department: updated.department,
-                status: updated.status,
                 passcode: updated.passcode,
                 lastLogin: updated.last_login
             } as User;
@@ -277,8 +302,41 @@ export const userService = {
         const { data, error } = await supabase.from('app_users').insert([payload]).select().single();
         
         if (error) {
-            console.error("Supabase insert failed:", JSON.stringify(error, null, 2));
-            handleSupabaseError(error);
+            if (error.code === '23505') {
+                // Duplicate key error! The trigger already inserted the record.
+                // Let's try to update it instead.
+                const { data: updatedData, error: updateError } = await supabase
+                    .from('app_users')
+                    .update({
+                        name: upperName,
+                        email: user.email,
+                        role: user.role,
+                        department: user.department
+                    })
+                    .eq('id', id)
+                    .select()
+                    .single();
+                
+                if (updateError) {
+                    console.error("Supabase update after duplicate key failed:", JSON.stringify(updateError, null, 2));
+                    // If update fails (e.g., due to RLS for anonymous users), just return the payload
+                    // The user will sync their profile when they log in.
+                    return payload as User;
+                }
+                
+                return {
+                    id: updatedData.id,
+                    name: updatedData.name?.toUpperCase(),
+                    email: updatedData.email,
+                    role: updatedData.role,
+                    department: updatedData.department,
+                    passcode: updatedData.passcode,
+                    lastLogin: updatedData.last_login
+                } as User;
+            } else {
+                console.error("Supabase insert failed:", JSON.stringify(error, null, 2));
+                handleSupabaseError(error);
+            }
         }
         
         // Return DB version
@@ -288,7 +346,6 @@ export const userService = {
           email: data.email,
           role: data.role,
           department: data.department,
-          status: data.status,
           passcode: data.passcode,
           lastLogin: data.last_login
         } as User;
@@ -348,10 +405,26 @@ export const userService = {
 
     // STRICT DB MODE
     try {
-        const { error } = await supabase.from('app_users').delete().eq('id', id);
-        if (error) {
-            console.error("Supabase delete error:", JSON.stringify(error, null, 2));
-            handleSupabaseError(error);
+        // First delete from app_users to avoid foreign key constraint errors if CASCADE is not set
+        const { error: appUserError } = await supabase.from('app_users').delete().eq('id', id);
+        if (appUserError) {
+            console.error("Supabase delete error (app_users):", JSON.stringify(appUserError, null, 2));
+            handleSupabaseError(appUserError);
+        }
+
+        // Then try to delete via RPC to remove from auth.users (requires a custom Postgres function)
+        // SQL for the function:
+        // create or replace function delete_user(user_id uuid)
+        // returns void
+        // language sql
+        // security definer
+        // as $$
+        //   delete from auth.users where id = user_id;
+        // $$;
+        const { error: rpcError } = await supabase.rpc('delete_user', { user_id: id });
+        
+        if (rpcError) {
+            console.warn("RPC delete_user failed (maybe not created yet). User removed from app_users but remains in auth.users.", rpcError);
         }
     } catch (e) {
         console.warn("Supabase delete failed.", e);

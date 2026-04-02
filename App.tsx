@@ -109,14 +109,14 @@ const RequestDetailContainer: React.FC<RequestDetailContainerProps> = ({
 };
 
 const App: React.FC = () => {
-  const { currentUser, users, refreshUsers } = useUser();
+  const { currentUser, users, loading: authLoading, refreshUsers } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
   
   const { 
     requests, 
     dashboardData, 
-    loading, 
+    loading: dataLoading, 
     totalCount, 
     fetchRequests, 
     fetchDashboardData,
@@ -301,6 +301,17 @@ const App: React.FC = () => {
       link.click();
   };
 
+  if (authLoading && !currentUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-indigo-600/10 border-t-indigo-600 rounded-full animate-spin"></div>
+          <p className="text-slate-400 text-sm font-medium animate-pulse">Loading session...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (isRecovery) {
     return (
       <Routes>
@@ -346,7 +357,7 @@ const App: React.FC = () => {
                 onBulkUpdate={handleBulkUpdate} 
                 currentUser={currentUser} 
                 users={users} 
-                loading={loading} 
+                loading={dataLoading} 
                 totalCount={totalCount} 
                 currentPage={currentPage} 
                 pageSize={PAGE_SIZE} 
@@ -363,7 +374,7 @@ const App: React.FC = () => {
                 onDelete={(ids) => setDeleteConfirmation({ show: true, ids })} 
                 onExport={handleExport} 
                 onFixQuarters={fixMissingQuarters}
-                loading={loading} 
+                loading={dataLoading} 
                 totalCount={totalCount} 
                 currentPage={currentPage} 
                 pageSize={PAGE_SIZE} 
@@ -407,7 +418,8 @@ const App: React.FC = () => {
         
         <Route path="*" element={<div className="p-8 text-center">404 - Page Not Found</div>} />
       </Routes>
-
+      
+      {/* Modals and Refresh Prompts */}
       {deleteConfirmation.show && <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"><div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in-up"><div className="p-6 text-center"><div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600"><Trash2 size={24} /></div><h3 className="text-lg font-bold text-slate-900">Confirm Deletion</h3><p className="text-sm text-slate-500 mt-2">Delete <span className="font-bold">{deleteConfirmation.ids.length}</span> records?</p><div className="flex gap-3 mt-6"><button onClick={() => setDeleteConfirmation({ show: false, ids: [] })} className="px-4 py-2 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 flex-1">Cancel</button><button onClick={handleDelete} className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 flex-1">Delete</button></div></div></div></div>}
 
       {showRefreshPrompt && (

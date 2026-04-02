@@ -23,7 +23,6 @@ BEGIN
     SELECT 1 FROM app_users 
     WHERE email = auth.jwt() ->> 'email' 
     AND role = 'ADMIN' 
-    AND status = 'ACTIVE'
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
